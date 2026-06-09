@@ -1,101 +1,139 @@
-import Image from "next/image";
+'use client'
 
-export default function Home() {
+export const dynamic = 'force-dynamic'
+
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import { supabase } from '@/lib/supabase'
+import { Prospect, ProspectStatus, STATUS_LABELS, STATUS_DOT_COLORS } from '@/lib/types'
+import ProspectCard from '@/components/ProspectCard'
+import { isToday } from '@/lib/utils'
+
+const STATUS_ORDER: ProspectStatus[] = ['to_follow_up', 'meeting_booked', 'to_visit', 'client', 'not_interested']
+
+export default function Dashboard() {
+  const [prospects, setProspects] = useState<Prospect[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetchProspects()
+  }, [])
+
+  async function fetchProspects() {
+    setLoading(true)
+    const { data, error } = await supabase
+      .from('prospects')
+      .select('*')
+      .order('updated_at', { ascending: false })
+
+    if (error) {
+      setError('Impossible de charger les prospects')
+    } else {
+      setProspects(data || [])
+    }
+    setLoading(false)
+  }
+
+  const todayProspects = prospects.filter(p => isToday(p.visit_date))
+  const toFollowUp = prospects.filter(p => p.status === 'to_follow_up').length
+  const meetingsBooked = prospects.filter(p => p.status === 'meeting_booked').length
+
+  const grouped = STATUS_ORDER.reduce((acc, status) => {
+    const items = prospects.filter(p => p.status === status)
+    if (items.length > 0) acc[status] = items
+    return acc
+  }, {} as Record<string, Prospect[]>)
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="min-h-screen bg-gray-100 pb-24">
+      {/* Header */}
+      <div className="bg-gray-900 px-4 pt-12 pb-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-white text-2xl font-bold">🥞 Crêpe Tool</h1>
+            <p className="text-gray-400 text-sm mt-0.5">Tableau de bord</p>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        {/* Stats */}
+        <div className="grid grid-cols-2 gap-3 mt-5">
+          <StatCard label="Total prospects" value={prospects.length} color="text-white" />
+          <StatCard label="Visites aujourd'hui" value={todayProspects.length} color="text-green-400" />
+          <StatCard label="À relancer" value={toFollowUp} color="text-orange-400" />
+          <StatCard label="RDV décrochés" value={meetingsBooked} color="text-green-400" />
+        </div>
+      </div>
+
+      <div className="px-4 mt-4">
+        {loading && (
+          <div className="text-center py-12 text-gray-400">Chargement...</div>
+        )}
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-600 text-sm mb-4">
+            {error}
+          </div>
+        )}
+
+        {/* Today's visits */}
+        {todayProspects.length > 0 && (
+          <section className="mb-6">
+            <SectionHeader label="Visites aujourd'hui" count={todayProspects.length} dot="bg-green-500" />
+            <div className="flex flex-col gap-3">
+              {todayProspects.map(p => <ProspectCard key={p.id} prospect={p} />)}
+            </div>
+          </section>
+        )}
+
+        {/* Grouped by status */}
+        {!loading && Object.entries(grouped).map(([status, items]) => (
+          <section key={status} className="mb-6">
+            <SectionHeader
+              label={STATUS_LABELS[status as ProspectStatus]}
+              count={items.length}
+              dot={STATUS_DOT_COLORS[status as ProspectStatus]}
+            />
+            <div className="flex flex-col gap-3">
+              {items.map(p => <ProspectCard key={p.id} prospect={p} />)}
+            </div>
+          </section>
+        ))}
+
+        {!loading && prospects.length === 0 && !error && (
+          <div className="text-center py-16">
+            <p className="text-4xl mb-3">🗺️</p>
+            <p className="text-gray-500 font-medium">Aucun prospect pour l&apos;instant</p>
+            <p className="text-gray-400 text-sm mt-1">Appuyez sur + pour ajouter votre premier prospect</p>
+          </div>
+        )}
+      </div>
+
+      {/* FAB */}
+      <Link href="/add">
+        <button className="fixed bottom-6 right-6 w-14 h-14 bg-gray-900 rounded-full shadow-lg flex items-center justify-center text-white text-2xl active:bg-gray-700 transition-colors z-10">
+          +
+        </button>
+      </Link>
     </div>
-  );
+  )
+}
+
+function StatCard({ label, value, color }: { label: string; value: number; color: string }) {
+  return (
+    <div className="bg-gray-800 rounded-2xl p-4">
+      <p className={`text-2xl font-bold ${color}`}>{value}</p>
+      <p className="text-gray-400 text-xs mt-0.5">{label}</p>
+    </div>
+  )
+}
+
+function SectionHeader({ label, count, dot }: { label: string; count: number; dot: string }) {
+  return (
+    <div className="flex items-center gap-2 mb-3">
+      <div className={`w-2.5 h-2.5 rounded-full ${dot}`} />
+      <h2 className="font-semibold text-gray-700 text-sm">{label}</h2>
+      <span className="text-gray-400 text-xs">({count})</span>
+    </div>
+  )
 }
