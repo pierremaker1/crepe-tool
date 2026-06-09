@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic'
 
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { supabase } from '@/lib/supabase'
+import { getSupabase } from '@/lib/supabase'
 import { ProspectInsert, ProspectUpdate } from '@/lib/types'
 import ProspectForm from '@/components/ProspectForm'
 
@@ -12,7 +12,7 @@ export default function AddProspect() {
   const router = useRouter()
 
   async function handleSubmit(data: ProspectInsert | ProspectUpdate) {
-    const { error } = await supabase.from('prospects').insert([data as ProspectInsert])
+    const { error } = await getSupabase().from('prospects').insert([data as ProspectInsert])
     if (error) throw new Error(error.message)
     router.push('/')
   }

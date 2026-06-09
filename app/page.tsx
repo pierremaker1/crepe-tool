@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { supabase } from '@/lib/supabase'
+import { getSupabase } from '@/lib/supabase'
 import { Prospect, ProspectStatus, STATUS_LABELS, STATUS_DOT_COLORS } from '@/lib/types'
 import ProspectCard from '@/components/ProspectCard'
 import { isToday } from '@/lib/utils'
@@ -22,15 +22,22 @@ export default function Dashboard() {
 
   async function fetchProspects() {
     setLoading(true)
-    const { data, error } = await supabase
-      .from('prospects')
-      .select('*')
-      .order('updated_at', { ascending: false })
+    try {
+      const { data, error } = await getSupabase()
+        .from('prospects')
+        .select('*')
+        .order('updated_at', { ascending: false })
 
-    if (error) {
-      setError('Impossible de charger les prospects')
-    } else {
-      setProspects(data || [])
+      if (error) {
+        console.error('Supabase query error:', error)
+        setError(`Erreur : ${error.message}`)
+      } else {
+        setProspects(data || [])
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error('Fetch error:', msg)
+      setError(`Erreur de connexion : ${msg}`)
     }
     setLoading(false)
   }
@@ -47,7 +54,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-100 pb-24">
-      {/* Header */}
       <div className="bg-gray-900 px-4 pt-12 pb-6">
         <div className="flex items-center justify-between">
           <div>
@@ -55,8 +61,6 @@ export default function Dashboard() {
             <p className="text-gray-400 text-sm mt-0.5">Tableau de bord</p>
           </div>
         </div>
-
-        {/* Stats */}
         <div className="grid grid-cols-2 gap-3 mt-5">
           <StatCard label="Total prospects" value={prospects.length} color="text-white" />
           <StatCard label="Visites aujourd'hui" value={todayProspects.length} color="text-green-400" />
@@ -76,7 +80,6 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Today's visits */}
         {todayProspects.length > 0 && (
           <section className="mb-6">
             <SectionHeader label="Visites aujourd'hui" count={todayProspects.length} dot="bg-green-500" />
@@ -86,7 +89,6 @@ export default function Dashboard() {
           </section>
         )}
 
-        {/* Grouped by status */}
         {!loading && Object.entries(grouped).map(([status, items]) => (
           <section key={status} className="mb-6">
             <SectionHeader
@@ -109,7 +111,6 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* FAB */}
       <Link href="/add">
         <button className="fixed bottom-6 right-6 w-14 h-14 bg-gray-900 rounded-full shadow-lg flex items-center justify-center text-white text-2xl active:bg-gray-700 transition-colors z-10">
           +

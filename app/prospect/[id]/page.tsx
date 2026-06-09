@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
-import { supabase } from '@/lib/supabase'
+import { getSupabase } from '@/lib/supabase'
 import { Prospect, ProspectInsert, ProspectUpdate } from '@/lib/types'
 import ProspectForm from '@/components/ProspectForm'
 
@@ -20,16 +20,20 @@ export default function ProspectDetail() {
 
   useEffect(() => {
     async function load() {
-      const { data, error } = await supabase
-        .from('prospects')
-        .select('*')
-        .eq('id', id)
-        .single()
+      try {
+        const { data, error } = await getSupabase()
+          .from('prospects')
+          .select('*')
+          .eq('id', id)
+          .single()
 
-      if (error || !data) {
+        if (error || !data) {
+          setNotFound(true)
+        } else {
+          setProspect(data)
+        }
+      } catch {
         setNotFound(true)
-      } else {
-        setProspect(data)
       }
       setLoading(false)
     }
@@ -37,7 +41,7 @@ export default function ProspectDetail() {
   }, [id])
 
   async function handleSubmit(data: ProspectInsert | ProspectUpdate) {
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from('prospects')
       .update({ ...data, updated_at: new Date().toISOString() })
       .eq('id', id)
@@ -46,7 +50,7 @@ export default function ProspectDetail() {
   }
 
   async function handleDelete() {
-    const { error } = await supabase.from('prospects').delete().eq('id', id)
+    const { error } = await getSupabase().from('prospects').delete().eq('id', id)
     if (error) throw new Error(error.message)
     router.push('/')
   }

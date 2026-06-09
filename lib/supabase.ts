@@ -1,18 +1,15 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
-let _supabase: SupabaseClient | null = null
+let _client: SupabaseClient | null = null
 
-function getClient(): SupabaseClient {
-  if (!_supabase) {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
-    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    _supabase = createClient(url, key)
+export function getSupabase(): SupabaseClient {
+  if (!_client) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    if (!url || !key) {
+      throw new Error(`Supabase env vars missing: url=${!!url} key=${!!key}`)
+    }
+    _client = createClient(url, key)
   }
-  return _supabase
+  return _client
 }
-
-export const supabase = new Proxy({} as SupabaseClient, {
-  get(_target, prop) {
-    return (getClient() as unknown as Record<string, unknown>)[prop as string]
-  },
-})
