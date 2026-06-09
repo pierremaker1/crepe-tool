@@ -5,13 +5,15 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { getSupabase } from '@/lib/supabase'
-import { Prospect, ProspectStatus, STATUS_LABELS, STATUS_DOT_COLORS } from '@/lib/types'
+import { Prospect, ProspectStatus, STATUS_DOT_COLORS } from '@/lib/types'
 import ProspectCard from '@/components/ProspectCard'
 import { isToday } from '@/lib/utils'
+import { useLang } from '@/components/LangContext'
 
 const STATUS_ORDER: ProspectStatus[] = ['to_follow_up', 'meeting_booked', 'to_visit', 'client', 'not_interested']
 
 export default function Dashboard() {
+  const { t, lang, toggle } = useLang()
   const [prospects, setProspects] = useState<Prospect[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -37,7 +39,7 @@ export default function Dashboard() {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err)
       console.error('Fetch error:', msg)
-      setError(`Erreur de connexion : ${msg}`)
+      setError(`Erreur : ${msg}`)
     }
     setLoading(false)
   }
@@ -57,21 +59,28 @@ export default function Dashboard() {
       <div className="bg-gray-900 px-4 pt-12 pb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-white text-2xl font-bold">🥞 Crêpe Tool</h1>
-            <p className="text-gray-400 text-sm mt-0.5">Tableau de bord</p>
+            <h1 className="text-white text-2xl font-bold">🥞 {t.appName}</h1>
+            <p className="text-gray-400 text-sm mt-0.5">{t.dashboard}</p>
           </div>
+          <button
+            onClick={toggle}
+            className="flex items-center gap-1.5 bg-gray-700 hover:bg-gray-600 active:bg-gray-500 px-3 py-1.5 rounded-xl text-sm font-medium text-gray-200 transition-colors"
+          >
+            <span className="text-base">{lang === 'fr' ? '🇬🇧' : '🇫🇷'}</span>
+            <span>{lang === 'fr' ? 'EN' : 'FR'}</span>
+          </button>
         </div>
         <div className="grid grid-cols-2 gap-3 mt-5">
-          <StatCard label="Total prospects" value={prospects.length} color="text-white" />
-          <StatCard label="Visites aujourd'hui" value={todayProspects.length} color="text-green-400" />
-          <StatCard label="À relancer" value={toFollowUp} color="text-orange-400" />
-          <StatCard label="RDV décrochés" value={meetingsBooked} color="text-green-400" />
+          <StatCard label={t.totalProspects} value={prospects.length} color="text-white" />
+          <StatCard label={t.visitsToday} value={todayProspects.length} color="text-green-400" />
+          <StatCard label={t.toFollowUp} value={toFollowUp} color="text-orange-400" />
+          <StatCard label={t.meetingsBooked} value={meetingsBooked} color="text-green-400" />
         </div>
       </div>
 
       <div className="px-4 mt-4">
         {loading && (
-          <div className="text-center py-12 text-gray-400">Chargement...</div>
+          <div className="text-center py-12 text-gray-400">{t.loading}</div>
         )}
 
         {error && (
@@ -82,7 +91,7 @@ export default function Dashboard() {
 
         {todayProspects.length > 0 && (
           <section className="mb-6">
-            <SectionHeader label="Visites aujourd'hui" count={todayProspects.length} dot="bg-green-500" />
+            <SectionHeader label={t.visitsTodaySection} count={todayProspects.length} dot="bg-green-500" />
             <div className="flex flex-col gap-3">
               {todayProspects.map(p => <ProspectCard key={p.id} prospect={p} />)}
             </div>
@@ -92,7 +101,7 @@ export default function Dashboard() {
         {!loading && Object.entries(grouped).map(([status, items]) => (
           <section key={status} className="mb-6">
             <SectionHeader
-              label={STATUS_LABELS[status as ProspectStatus]}
+              label={t.status[status as ProspectStatus]}
               count={items.length}
               dot={STATUS_DOT_COLORS[status as ProspectStatus]}
             />
@@ -105,8 +114,8 @@ export default function Dashboard() {
         {!loading && prospects.length === 0 && !error && (
           <div className="text-center py-16">
             <p className="text-4xl mb-3">🗺️</p>
-            <p className="text-gray-500 font-medium">Aucun prospect pour l&apos;instant</p>
-            <p className="text-gray-400 text-sm mt-1">Appuyez sur + pour ajouter votre premier prospect</p>
+            <p className="text-gray-500 font-medium">{t.noProspects}</p>
+            <p className="text-gray-400 text-sm mt-1">{t.noProspectsHint}</p>
           </div>
         )}
       </div>

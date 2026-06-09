@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import PinGate from '@/components/PinGate'
+import { LangProvider } from '@/components/LangContext'
 
 export const metadata: Metadata = {
   title: 'Crêpe Tool',
@@ -17,9 +18,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="fr">
       <body>
-        <PinGate>
-          {children}
-        </PinGate>
+        <LangProvider>
+          <PinGate>
+            {children}
+          </PinGate>
+        </LangProvider>
       </body>
     </html>
   )
