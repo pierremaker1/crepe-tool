@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { isAuthenticated, setAuthenticated } from '@/lib/auth'
 
 interface PinGateProps {
@@ -10,25 +10,18 @@ interface PinGateProps {
 export default function PinGate({ children }: PinGateProps) {
   const [authed, setAuthed] = useState<boolean | null>(null)
   const [pin, setPin] = useState('')
-  const [error, setError] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [shake, setShake] = useState(false)
-  const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     setAuthed(isAuthenticated())
   }, [])
 
-  useEffect(() => {
-    if (authed === false) {
-      setTimeout(() => inputRef.current?.focus(), 100)
-    }
-  }, [authed])
-
   function handleDigit(d: string) {
     if (pin.length >= 4) return
     const next = pin + d
     setPin(next)
-    setError(false)
+    setError(null)
     if (next.length === 4) {
       verify(next)
     }
@@ -36,23 +29,32 @@ export default function PinGate({ children }: PinGateProps) {
 
   function handleDelete() {
     setPin(p => p.slice(0, -1))
-    setError(false)
+    setError(null)
   }
 
   async function verify(code: string) {
-    const res = await fetch('/api/verify-pin', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pin: code }),
-    })
-    if (res.ok) {
-      setAuthenticated()
-      setAuthed(true)
-    } else {
-      setError(true)
-      setShake(true)
-      setTimeout(() => { setShake(false); setPin('') }, 600)
+    try {
+      const res = await fetch('/api/verify-pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: code }),
+      })
+      if (res.ok) {
+        setAuthenticated()
+        setAuthed(true)
+        return
+      }
+      const data = await res.json().catch(() => ({}))
+      if (res.status === 500 && data.error === 'not_configured') {
+        setError('PIN non configuré (vérifiez les variables d\'env)')
+      } else {
+        setError('Code incorrect')
+      }
+    } catch {
+      setError('Erreur réseau — vérifiez votre connexion')
     }
+    setShake(true)
+    setTimeout(() => { setShake(false); setPin('') }, 600)
   }
 
   if (authed === null) return null
@@ -77,14 +79,14 @@ export default function PinGate({ children }: PinGateProps) {
             className={`w-4 h-4 rounded-full border-2 transition-colors duration-150 ${
               pin.length > i
                 ? error ? 'bg-red-500 border-red-500' : 'bg-white border-white'
-                : 'border-gray-500'
+                : 'bg-transparent border-gray-500'
             }`}
           />
         ))}
       </div>
 
       {error && (
-        <p className="text-red-400 text-sm mb-6 -mt-6">Code incorrect</p>
+        <p className="text-red-400 text-sm mb-6 -mt-6 text-center px-4">{error}</p>
       )}
 
       {/* Keypad */}
