@@ -4,7 +4,6 @@ export const dynamic = 'force-dynamic'
 
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { getSupabase } from '@/lib/supabase'
 import { ProspectInsert, ProspectUpdate } from '@/lib/types'
 import ProspectForm from '@/components/ProspectForm'
 import { useLang } from '@/components/LangContext'
@@ -14,8 +13,13 @@ export default function AddProspect() {
   const { t } = useLang()
 
   async function handleSubmit(data: ProspectInsert | ProspectUpdate) {
-    const { error } = await getSupabase().from('prospects').insert([data as ProspectInsert])
-    if (error) throw new Error(error.message)
+    const res = await fetch('/api/prospects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    const json = await res.json()
+    if (!res.ok) throw new Error(json.error || 'Erreur')
     router.push('/')
   }
 

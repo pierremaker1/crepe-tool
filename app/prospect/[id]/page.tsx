@@ -5,7 +5,6 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
-import { getSupabase } from '@/lib/supabase'
 import { Prospect, ProspectInsert, ProspectUpdate } from '@/lib/types'
 import ProspectForm from '@/components/ProspectForm'
 import { useLang } from '@/components/LangContext'
@@ -23,14 +22,14 @@ export default function ProspectDetail() {
   useEffect(() => {
     async function load() {
       try {
-        const { data, error } = await getSupabase()
-          .from('prospects')
-          .select('*')
-          .eq('id', id)
-          .single()
-
-        if (error || !data) setNotFound(true)
-        else setProspect(data)
+        const res = await fetch(`/api/prospects/${id}`)
+        if (!res.ok) {
+          setNotFound(true)
+        } else {
+          const json = await res.json()
+          if (!json.data) setNotFound(true)
+          else setProspect(json.data)
+        }
       } catch {
         setNotFound(true)
       }
@@ -40,17 +39,20 @@ export default function ProspectDetail() {
   }, [id])
 
   async function handleSubmit(data: ProspectInsert | ProspectUpdate) {
-    const { error } = await getSupabase()
-      .from('prospects')
-      .update({ ...data, updated_at: new Date().toISOString() })
-      .eq('id', id)
-    if (error) throw new Error(error.message)
+    const res = await fetch(`/api/prospects/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    const json = await res.json()
+    if (!res.ok) throw new Error(json.error || 'Erreur')
     router.push('/')
   }
 
   async function handleDelete() {
-    const { error } = await getSupabase().from('prospects').delete().eq('id', id)
-    if (error) throw new Error(error.message)
+    const res = await fetch(`/api/prospects/${id}`, { method: 'DELETE' })
+    const json = await res.json()
+    if (!res.ok) throw new Error(json.error || 'Erreur')
     router.push('/')
   }
 

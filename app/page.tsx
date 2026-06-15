@@ -4,7 +4,6 @@ export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { getSupabase } from '@/lib/supabase'
 import { Prospect, ProspectStatus, STATUS_DOT_COLORS } from '@/lib/types'
 import ProspectCard from '@/components/ProspectCard'
 import { isToday } from '@/lib/utils'
@@ -24,17 +23,15 @@ export default function Dashboard() {
 
   async function fetchProspects() {
     setLoading(true)
+    setError(null)
     try {
-      const { data, error } = await getSupabase()
-        .from('prospects')
-        .select('*')
-        .order('updated_at', { ascending: false })
-
-      if (error) {
-        console.error('Supabase query error:', error)
-        setError(`Erreur : ${error.message}`)
+      const res = await fetch('/api/prospects')
+      const json = await res.json()
+      if (!res.ok) {
+        console.error('API error:', json.error)
+        setError(`Erreur : ${json.error}`)
       } else {
-        setProspects(data || [])
+        setProspects(json.data || [])
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err)
